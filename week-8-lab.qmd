@@ -1,0 +1,231 @@
+---
+title: "Week 8 Lab"
+author: "Carmen Hoyt"
+date: last-modified
+editor_options: 
+  chunk_output_type: console
+execute:
+  warning: false
+  messages: false
+format:
+  html:
+      toc: true
+      code-fold: true
+---
+
+# Load packages
+```{r}
+#| code-summary: Expand code
+library(terra)
+library(sf)
+library(tidyverse)
+library(here)
+library(tmap)
+```
+
+# NDVI function
+```{r}
+#| code-summary: Expand code
+# Create a function to calculate NDVI
+ndvi_fun <- function(nir, red){
+  (nir - red) / (nir + red)
+}
+```
+
+## NDVI caluclations for a single scene
+```{r}
+#| code-summary: Expand code
+# Load in June 12, 2018 data
+landsat_20180612 <- rast(here("data", "landsat_20180612.tif"))
+
+# Update the names of the layers to match the spectral bands they correspond to
+names(landsat_20180612) <- c("blue", "green", "red", "NIR", "SWIR1", "SWIR2")
+
+# Apply NDVI to layer
+ndvi_20180612 <- lapp(landsat_20180612[[c(4, 3)]], fun = ndvi_fun)
+
+# Check with a map
+tm_shape(ndvi_20180612) +
+  tm_raster(title = "NDVI") +
+  tm_layout(legend.outside = TRUE)
+```
+
+# Approach 1
+```{r}
+#| code-summary: Expand code
+# Load each layer
+landsat_20180612 <-rast(here("data", "landsat_20180612.tif"))
+landsat_20180815 <- rast(here("data", "landsat_20180815.tif"))
+landsat_20181018 <- rast(here("data", "landsat_20181018.tif"))
+landsat_20181103 <- rast(here("data", "landsat_20181103.tif"))
+landsat_20190122 <- rast(here("data", "landsat_20190122.tif"))
+landsat_20190223 <- rast(here("data", "landsat_20190223.tif"))
+landsat_20190412 <- rast(here("data", "landsat_20190412.tif"))
+landsat_20190701 <- rast(here("data", "landsat_20190701.tif"))
+
+# Rename each layer
+names(landsat_20180612) <- c("blue", "green", "red", "NIR", "SWIR1", "SWIR2")
+names(landsat_20180815) <- c("blue", "green", "red", "NIR", "SWIR1", "SWIR2")
+names(landsat_20181018) <- c("blue", "green", "red", "NIR", "SWIR1", "SWIR2")
+names(landsat_20181103) <- c("blue", "green", "red", "NIR", "SWIR1", "SWIR2")
+names(landsat_20190122) <- c("blue", "green", "red", "NIR", "SWIR1", "SWIR2")
+names(landsat_20190223) <- c("blue", "green", "red", "NIR", "SWIR1", "SWIR2")
+names(landsat_20190412) <- c("blue", "green", "red", "NIR", "SWIR1", "SWIR2")
+names(landsat_20190701) <- c("blue", "green", "red", "NIR", "SWIR1", "SWIR2")
+
+# Computer NDVI for each layer
+ndvi_20180612 <- lapp(landsat_20180612[[c(4, 3)]], fun = ndvi_fun)
+ndvi_20180815 <- lapp(landsat_20180815[[c(4, 3)]], fun = ndvi_fun)
+ndvi_20181018 <- lapp(landsat_20181018[[c(4, 3)]], fun = ndvi_fun)
+ndvi_20181103 <- lapp(landsat_20181103[[c(4, 3)]], fun = ndvi_fun)
+ndvi_20190122 <- lapp(landsat_20190122[[c(4, 3)]], fun = ndvi_fun)
+ndvi_20190223 <- lapp(landsat_20190223[[c(4, 3)]], fun = ndvi_fun)
+ndvi_20190412 <- lapp(landsat_20190412[[c(4, 3)]], fun = ndvi_fun)
+ndvi_20190701 <- lapp(landsat_20190701[[c(4, 3)]], fun = ndvi_fun)
+
+# Combine into a raster stack
+all_ndvi <- c(ndvi_20180612, 
+              ndvi_20180815, 
+              ndvi_20181018, 
+              ndvi_20181103, 
+              ndvi_20190122, 
+              ndvi_20190223, 
+              ndvi_20190412, 
+              ndvi_20190701)
+
+# Update names
+names(all_ndvi) <- c("2018-06-12", 
+                     "2018-08-15", 
+                     "2018-10-18", 
+                     "2018-11-03", 
+                     "2019-01-22", 
+                     "2019-02-23", 
+                     "2019-04-12", 
+                     "2019-07-01")
+```
+
+# Approach 2
+```{r}
+#| code-summary: Expand code
+# Clear environment
+rm(list = ls())
+
+# Define NDVI function
+ndvi_fun <- function(nir, red){
+  (nir - red) / (nir + red)
+}
+```
+
+
+```{r}
+#| code-summary: Expand code
+# Creat list of file names
+files <- list.files(here("data"),
+           pattern = "*.tif",
+           full.names = TRUE)
+
+create_ndvi_layer <- function(i){
+# step 1: read in scene
+  landsat <- terra::rast(files[i])
+  
+# step 2: rename bands in scene
+  names(landsat) <- c("blue", "green", "red", "NIR", "SWIR1", "SWIR2")
+  
+# scene 3: NDVI
+  ndvi <- lapp(landsat[[c(4,3)]], fun = ndvi_fun)
+  
+  return(ndvi)
+}
+```
+
+
+```{r}
+all_ndvi <- c(create_ndvi_layer(1),
+              create_ndvi_layer(2),
+              create_ndvi_layer(3),
+              create_ndvi_layer(4),
+              create_ndvi_layer(5),
+              create_ndvi_layer(6),
+              create_ndvi_layer(7),
+              create_ndvi_layer(8))
+              
+names(all_ndvi) <- c("2018-06-12",
+                     "2018-08-15",
+                     "2018-10-18",
+                     "2018-11-03",
+                     "2019-01-22",
+                     "2019-02-23",
+                     "2019-04-12",
+                     "2019-07-01")              
+
+all_ndvi
+```
+
+```{r}
+file_names <- data.frame(file_name = files) %>%
+  mutate(date = str_sub(file_name, start = -12L, end = -5L))
+
+names(all_ndvi) <- file_names$date
+```
+
+## Compare NDVI across veg communities
+
+### Get data on veg communities
+```{r}
+sites <- st_read(here("data", "study_sites.shp"))
+
+tm_shape(all_ndvi[[1]]) +
+  tm_raster() +
+  tm_shape(sites) +
+  tm_polygons()
+```
+
+### Extract NDVI at study sites
+```{r}
+sites_ndvi <- terra::extract(all_ndvi, sites, fun = "mean")
+
+sites_annotated <- cbind(sites, sites_ndvi)
+```
+
+```{r}
+sites_clean <- sites_annotated %>%
+  # initial cleaning
+  select(-ID) %>%
+  st_drop_geometry() %>%
+  # reformat data frame
+  pivot_longer(!study_site) %>%
+  rename("NDVI" = value)%>%
+  # create date component attributes
+  mutate("year" = str_sub(name, 2, 5),
+         "month" = str_sub(name, 6, 7),
+         "day" = str_sub(name, 8, 9)) %>%
+  # combine date elements
+  unite("date", 4:6, sep = "-") %>%
+  mutate("date" = lubridate::as_date(date)) %>%
+  select(-name) %>%
+  # rename to combine study sites by veg type
+  mutate("veg_type" = case_when(study_site == "forest1" ~ "forest",
+                                study_site == "forest2" ~ "forest",
+                                study_site == "forest3" ~ "forest",
+                                study_site == "grassland" ~ "grassland",
+                                study_site == "chaparral" ~ "chaparral")) %>%
+  group_by(veg_type, date) %>%
+  summarise("NDVI" = mean(NDVI, na.rm = TRUE))
+```
+
+```{r}
+ggplot(sites_clean,
+       aes(x = date, y = NDVI, color = veg_type)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(x = "",
+       y = "Normalized Difference Vegetation Index (NDVI)",
+       col = "Vegetation type",
+       title = "Sesasonal cycle of vegetation productivity")
+```
+
+
+
+
+
